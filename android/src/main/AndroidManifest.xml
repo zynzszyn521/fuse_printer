@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.fuse.fuse_printer">
+
+  <uses-feature android:name="android.hardware.usb.host" android:required="true"/>
+  <uses-permission android:name="android.permission.HARDWARE_TEST" />
+  <uses-permission android:name="android.hardware.usb.host" />
+  <uses-permission android:name="android.hardware.usb.accessory" />
+
+  <application
+        android:allowBackup="true"
+        android:supportsRtl="true">
+        <meta-data
+        android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+        android:resource="@xml/device_filter" />
+  </application>
+</manifest>
