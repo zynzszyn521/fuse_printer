@@ -37,8 +37,8 @@ public class UsbPrinter {
     private ConcurrentLinkedQueue<byte[]> mDataQueue;
     private boolean mIsPrinting = false;
     private boolean mIsRunning = false;
-    private static final int VENDOR_ID = 0x4B55;
-    private static final int PRODUCT_ID = 0x3558;
+    private static final int VENDOR_ID = 0x1203;//4611
+    private static final int PRODUCT_ID = 0x0130;//304
 
     private UsbPrinter(Context context) {
         this.mContext = context.getApplicationContext();

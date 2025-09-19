@@ -1,5 +1,6 @@
 package com.fuse.fuse_printer.usbtool;
 
+import androidx.annotation.NonNull;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -16,13 +17,13 @@ import android.util.Log;
 
 import com.fuse.fuse_printer.usbtool.usbprinter.USBUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -37,16 +38,13 @@ public class USBCommunicationPlugin {
     private Context mContext;
     private USBStateListener mUSBStateListener;
 
-    private boolean isTsc = true;   // true: TSC, false: ESC
-
     private USBUtil usbUtil;
-    private UsbDevice mUsbDevice;
 
     private Timer timer;
     private boolean isAutoConnecting = false;
 
     // 时间格式
-    private final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
     // Handler 改为静态内部类，避免内存泄漏
     private static class SafeHandler extends Handler {
@@ -58,7 +56,7 @@ public class USBCommunicationPlugin {
         }
 
         @Override
-        public void handleMessage(Message msg) {
+        public void handleMessage(@NonNull Message msg) {
             USBCommunicationPlugin plugin = pluginRef.get();
             if (plugin == null || plugin.mUSBStateListener == null) return;
 
@@ -93,7 +91,7 @@ public class USBCommunicationPlugin {
 
     public void init(Context context, boolean isTSC) {
         this.mContext = context.getApplicationContext();
-        this.isTsc = isTSC;
+        // true: TSC, false: ESC
 
         // 初始化 USBUtil
         usbUtil = USBUtil.getInstance(mContext);
@@ -138,13 +136,14 @@ public class USBCommunicationPlugin {
      * 尝试连接USB打印机
      */
     private void connectUSBPrinter() {
+        Log.i(TAG, "检查连接的USBPrinter...");
         if (usbUtil.isConnected()) {
             mHandler.obtainMessage(USB_STATE_CHANGED, true).sendToTarget();
             return;
         }
 
         // 查找设备
-        mUsbDevice = usbUtil.findUsbDevice(VENDOR_ID, PRODUCT_ID);
+        UsbDevice mUsbDevice = usbUtil.findUsbDevice(VENDOR_ID, PRODUCT_ID);
         if (mUsbDevice == null) {
             Log.w(TAG, "未找到匹配的USB设备");
             mHandler.obtainMessage(USB_STATE_CHANGED, false).sendToTarget();
@@ -173,7 +172,7 @@ public class USBCommunicationPlugin {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action == null) return;
-
+            Log.i(TAG, "接收到Action:"+action);
             UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
             if (device == null) return;
 
@@ -201,6 +200,7 @@ public class USBCommunicationPlugin {
     };
 
     private void registerUSBStateReceiver() {
+        Log.i(TAG, "执行了registerUSBStateReceiver");
         IntentFilter filter = new IntentFilter();
         filter.addAction(USBUtil.getInstance(mContext).getPermissionAction());
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
@@ -269,22 +269,21 @@ public class USBCommunicationPlugin {
     }
 
     // 绘图方法（保持不变）
-    public boolean tspl_drawGraphic(int start_x, int start_y, Bitmap bmp) {
+    public void tspl_drawGraphic(int start_x, int start_y, Bitmap bmp) {
         int bmp_size_x = bmp.getWidth();
         int bmp_size_y = bmp.getHeight();
         int byteWidth = (bmp_size_x - 1) / 8 + 1;
-        int byteHeight = bmp_size_y;
-        if (byteWidth <= 0 || byteHeight <= 0) return false;
+        if (byteWidth <= 0 || bmp_size_y <= 0) return;
 
         int unitHeight = 2048 / byteWidth;
-        int unitCount = (byteHeight - 1) / unitHeight + 1;
+        int unitCount = (bmp_size_y - 1) / unitHeight + 1;
         int startY, endY;
         byte[] dataByte;
         int color, A, R, G, B;
 
         for (int n = 0; n < unitCount; n++) {
             startY = n * unitHeight;
-            endY = (startY + unitHeight) > bmp_size_y ? bmp_size_y : startY + unitHeight;
+            endY = Math.min((startY + unitHeight), bmp_size_y);
             int byteLen = (endY - startY) * byteWidth;
             dataByte = new byte[byteLen];
 
@@ -296,17 +295,16 @@ public class USBCommunicationPlugin {
                     G = color >>> 8 & 0xFF;
                     B = color & 0xFF;
                     if (A == 0 || R * 0.3 + G * 0.59 + B * 0.11 > 127) {
-                        dataByte[(y - startY) * byteWidth + x / 8] |= (0x80 >> (x % 8));
+                        dataByte[(y - startY) * byteWidth + x / 8] |= (byte) (0x80 >> (x % 8));
                     }
                 }
             }
 
-            int curUnitHeight = n == unitCount - 1 ? (byteHeight - (n * unitHeight)) : unitHeight;
+            int curUnitHeight = n == unitCount - 1 ? (bmp_size_y - (n * unitHeight)) : unitHeight;
             String cmdHeader = "BITMAP " + start_x + "," + (start_y + startY) + "," + byteWidth + "," + curUnitHeight + ",0,";
             usbUtil.sendData(cmdHeader.getBytes(StandardCharsets.UTF_8));
             usbUtil.sendData(dataByte);
         }
-        return true;
     }
 
     private Bitmap getImageFromAssetsFile(String fileName) {
@@ -316,5 +314,102 @@ public class USBCommunicationPlugin {
             Log.e(TAG, "加载图片失败", e);
             return null;
         }
+    }
+    // 打印条码
+    public boolean doPrintBarcode(String code, String type, int height) {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法打印条码");
+            return false;
+        }
+        try {
+            // 这里只实现TSC模式下的常见条码命令
+            String cmd = "BARCODE 50,50,\"" + type + "\",80,1,0,2,2,\"" + code + "\"\n";
+            sendCommand("CLS\n");
+            sendCommand(cmd);
+            sendCommand("PRINT 1,1\n");
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "打印条码异常", e);
+            return false;
+        }
+    }
+
+    // 打印二维码
+    public boolean doPrintQRCode(String content, int size) {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法打印二维码");
+            return false;
+        }
+        try {
+            String cmd = "QRCODE 50,50,H," + size + ",A,0,\"" + content + "\"\n";
+            sendCommand("CLS\n");
+            sendCommand(cmd);
+            sendCommand("PRINT 1,1\n");
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "打印二维码异常", e);
+            return false;
+        }
+    }
+
+    // 打印图片（假设imagePath为assets路径）
+    public boolean doPrintImage(String imagePath) {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法打印图片");
+            return false;
+        }
+        try {
+            Bitmap bitmap = getImageFromAssetsFile(imagePath);
+            if (bitmap == null) {
+                Log.e(TAG, "图片加载失败: " + imagePath);
+                return false;
+            }
+            sendCommand("CLS\n");
+            tspl_drawGraphic(50, 50, bitmap);
+            sendCommand("PRINT 1,1\n");
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "打印图片异常", e);
+            return false;
+        }
+    }
+
+    // 切纸（ESC模式常见命令，TSC部分机型支持）
+    public boolean doCutPaper() {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法切纸");
+            return false;
+        }
+        try {
+            // ESC/POS常用切纸命令
+            byte[] cut = new byte[]{0x1D, 0x56, 0x00};
+            usbUtil.sendData(cut);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "切纸异常", e);
+            return false;
+        }
+    }
+
+    // 进纸
+    public boolean doFeedPaper(int lines) {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法进纸");
+            return false;
+        }
+        try {
+            // ESC/POS进纸命令
+            byte[] feed = new byte[]{0x1B, 0x64, (byte) lines};
+            usbUtil.sendData(feed);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "进纸异常", e);
+            return false;
+        }
+    }
+
+    // 获取打印机状态（简单实现，返回true表示连接）
+    public boolean getPrinterStatus() {
+        return usbUtil.isConnected();
     }
 }

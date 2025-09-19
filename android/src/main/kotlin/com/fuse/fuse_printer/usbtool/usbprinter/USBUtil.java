@@ -36,7 +36,8 @@ public class USBUtil {
     private UsbInterface mUsbInterface;
 
     private USBUtil(Context context) {
-        this.mContext = context.getApplicationContext();
+    this.mContext = context.getApplicationContext();
+    this.mUsbManager = (UsbManager) this.mContext.getSystemService(Context.USB_SERVICE);
     }
 
     public static synchronized USBUtil getInstance(Context context) {
@@ -59,7 +60,9 @@ public class USBUtil {
      * 初始化USB设备
      */
     public boolean initUsbDevice(int vendorId, int productId) {
-        mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        if (mUsbManager == null) {
+            mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        }
         // 寻找USB设备
         mUsbDevice = findUsbDevice(vendorId, productId);
         if (mUsbDevice == null) {
@@ -102,6 +105,9 @@ public class USBUtil {
      * 查找USB设备
      */
     public UsbDevice findUsbDevice(int vendorId, int productId) {
+        if (mUsbManager == null) {
+            mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        }
         HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
 
@@ -123,6 +129,9 @@ public class USBUtil {
      * 查找USB设备（仅根据vendorId）
      */
     public UsbDevice findUsbDeviceByVendorId(int vendorId) {
+        if (mUsbManager == null) {
+            mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        }
         HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
 
@@ -145,6 +154,9 @@ public class USBUtil {
      */
     public List<UsbDevice> getAllUsbDevices() {
         List<UsbDevice> deviceList = new ArrayList<>();
+        if (mUsbManager == null) {
+            mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        }
         HashMap<String, UsbDevice> devices = mUsbManager.getDeviceList();
         if (devices != null && !devices.isEmpty()) {
             deviceList.addAll(devices.values());
