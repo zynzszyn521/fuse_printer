@@ -203,7 +203,7 @@ public class USBCommunicationPlugin {
     /**
      * 打印
      */
-    public void doPrintUsbTsc(String weight, String printModel){
+    public void doPrintUsbTsc(String weight){
         usbUtil = USBUtil.getInstance();
         if (mUsbDevice == null) {
             mUsbDevice = usbUtil.getUsbDevice(19267, 13624);

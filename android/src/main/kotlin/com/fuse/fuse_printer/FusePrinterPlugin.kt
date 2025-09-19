@@ -25,7 +25,7 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
-    mUSBCommunicationPlugin = USBCommunicationPlugin(flutterPluginBinding.applicationContext)
+    mUSBCommunicationPlugin = USBCommunicationPlugin()
     context = flutterPluginBinding.applicationContext
     registerReceiver(context)
   }
