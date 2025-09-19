@@ -26,29 +26,27 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
     mUSBCommunicationPlugin = USBCommunicationPlugin()
-    // 初始化USB通信插件，假设默认TSC模式
-    mUSBCommunicationPlugin.init(context, true)
+    mUSBCommunicationPlugin.init(context, 0,0)
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
     if (call.method == "getPlatformVersion") {
       result.success("Android ${android.os.Build.VERSION.RELEASE}")
     } else if (call.method == "printInit") {
-      // 初始化打印机，支持TSC/ESC模式切换
-      val isTSC = call.argument<Boolean>("isTSC") ?: true
+      val vendorId = call.argument<Int>("vendorId") ?: 0
+      val productId = call.argument<Int>("productId") ?: 0
       try {
-        mUSBCommunicationPlugin.init(context, isTSC)
+        mUSBCommunicationPlugin.init(context, vendorId, productId)
         result.success(true)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print init error: ${e.message}")
         result.error("PRINT_INIT_ERROR", "初始化打印机失败: ${e.message}", null)
       }
-    } else if (call.method == "printText") {
-      // 打印文本
-      val text = call.argument<String>("text") ?: ""
-      // 这里只做简单调用，具体参数请根据USBCommunicationPlugin实际实现调整
+    } else if (call.method == "printCommand") {
+      // 打印指令
+      val command = call.argument<String>("command") ?: ""
       try {
-        mUSBCommunicationPlugin.doPrintUsbTsc(text)
+        mUSBCommunicationPlugin.doPrintCommand(command)
         result.success(true)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print text error: ${e.message}")
@@ -87,15 +85,15 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
         Log.e("FusePrinterPlugin", "Print image error: ${e.message}")
         result.error("PRINT_IMAGE_ERROR", "打印图片失败: ${e.message}", null)
       }
-    } else if (call.method == "printTscCommand") {
-      // 打印TSC命令
+    } else if (call.method == "printCommand") {
+      // 打印命令
       val command = call.argument<String>("command") ?: ""
       try {
-        mUSBCommunicationPlugin.doPrintUsbTsc(command)
+        mUSBCommunicationPlugin.doPrintCommand(command)
         result.success(true)
       } catch (e: Exception) {
-        Log.e("FusePrinterPlugin", "Print TSC command error: ${e.message}")
-        result.error("PRINT_TSC_ERROR", "打印TSC命令失败: ${e.message}", null)
+        Log.e("FusePrinterPlugin", "Print command error: ${e.message}")
+        result.error("PRINT_ERROR", "打印命令失败: ${e.message}", null)
       }
     } else if (call.method == "printCutPaper") {
       // 切纸

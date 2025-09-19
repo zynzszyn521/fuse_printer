@@ -59,8 +59,8 @@ class MockPlusTestPlatform
   }
   
   @override
-  Future<bool?> printText({required String text, String align = 'left', int size = 1}) {
-    // TODO: implement printText
+  Future<bool?> printCommand({required String command}) {
+    // TODO: implement printCommand
     throw UnimplementedError();
   }
   

@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -31,9 +32,9 @@ public class USBCommunicationPlugin {
 
     private static final String TAG = USBCommunicationPlugin.class.getSimpleName();
 
-    // 设备信息（示例：需根据实际设备修改）
-    private static final int VENDOR_ID = 19267;
-    private static final int PRODUCT_ID = 13624;
+    // 设备信息由外部传入
+    private int mVendorId = 0;
+    private int mProductId = 0;
 
     private Context mContext;
     private USBStateListener mUSBStateListener;
@@ -89,8 +90,10 @@ public class USBCommunicationPlugin {
         this.mUSBStateListener = listener;
     }
 
-    public void init(Context context, boolean isTSC) {
+    public void init(Context context, int vendorId, int productId) {
         this.mContext = context.getApplicationContext();
+        this.mVendorId = vendorId;
+        this.mProductId = productId;
         // true: TSC, false: ESC
 
         // 初始化 USBUtil
@@ -143,23 +146,31 @@ public class USBCommunicationPlugin {
         }
 
         // 查找设备
-        UsbDevice mUsbDevice = usbUtil.findUsbDevice(VENDOR_ID, PRODUCT_ID);
+        UsbDevice mUsbDevice = usbUtil.findUsbDevice(mVendorId, mProductId);
         if (mUsbDevice == null) {
-            Log.w(TAG, "未找到匹配的USB设备");
+            Log.w(TAG, "未找到匹配的USB设备:VendorID=" + mVendorId + ", ProductID=" + mProductId);
             mHandler.obtainMessage(USB_STATE_CHANGED, false).sendToTarget();
             return;
         }
 
         // 请求权限或初始化
-        if (!usbUtil.initUsbDevice(VENDOR_ID, PRODUCT_ID)) {
+        if (!usbUtil.initUsbDevice(mVendorId, mProductId)) {
             // 需要请求权限
             Log.i(TAG, "请求USB权限...");
-            ((UsbManager) mContext.getSystemService(Context.USB_SERVICE))
-                    .requestPermission(mUsbDevice, PendingIntent.getBroadcast(
-                            mContext, 0,
-                            new Intent(USBUtil.getInstance(mContext).getPermissionAction()),
-                            PendingIntent.FLAG_MUTABLE
-                    ));
+
+            String action = USBUtil.getInstance(mContext).getPermissionAction();
+            Intent intent = new Intent(action);
+            intent.setPackage(mContext.getPackageName()); // 显式 Intent
+
+            PendingIntent pendingIntent;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+ 推荐使用 IMMUTABLE，除非你需要修改 Intent
+                pendingIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+            } else {
+                // Android 12 以下仍可用 MUTABLE
+                pendingIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_MUTABLE);
+            }
+            ((UsbManager) mContext.getSystemService(Context.USB_SERVICE)).requestPermission(mUsbDevice, pendingIntent);
         } else {
             Log.i(TAG, "USB设备已连接");
             mHandler.obtainMessage(USB_STATE_CHANGED, true).sendToTarget();
@@ -200,12 +211,15 @@ public class USBCommunicationPlugin {
     };
 
     private void registerUSBStateReceiver() {
-        Log.i(TAG, "执行了registerUSBStateReceiver");
         IntentFilter filter = new IntentFilter();
         filter.addAction(USBUtil.getInstance(mContext).getPermissionAction());
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        mContext.registerReceiver(mUsbReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mContext.registerReceiver(mUsbReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            mContext.registerReceiver(mUsbReceiver, filter);
+        }
     }
 
     public void unRegisterUSBStateReceiver() {
@@ -216,56 +230,24 @@ public class USBCommunicationPlugin {
         }
     }
 
+    private void sendCommand(String cmd) {
+        usbUtil.sendData(cmd.getBytes(StandardCharsets.UTF_8));
+    }
+
     // 打印方法
-    public void doPrintUsbTsc(String weight) {
+    public void doPrintCommand(String command) {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法打印");
             return;
         }
-
         new Thread(() -> {
             try {
-                // 发送初始化命令
-                sendCommand("SIZE 54 mm,38 mm\n");
-                sendCommand("GAP 2 mm,0 mm\n");
-                sendCommand("DIRECTION 1\n");
-                sendCommand("CLS\n");
-
-                // 矩形框
-                sendCommand("BOX 0,0,360,50,2\n");
-
-                // 图片
-                Bitmap bitmap = getImageFromAssetsFile("image/ic_jk.png");
-                if (bitmap != null) {
-                    tspl_drawGraphic(130, 100, bitmap);
-                }
-
-                // 文本
-                sendCommand("TEXT 2,10,\"3\",0,1.2,1.2,\"健坤小助手\"\n");
-                sendCommand("BAR 0,75,380,3\n");
-                sendCommand("TEXT 2,90,\"4\",0,1,1,\"科室：测试\"\n");
-                sendCommand("TEXT 2,120,\"2\",0,1,1,\"车号:测试\"\n");
-                sendCommand("TEXT 2,150,\"2\",0,1,1,\"类型:测试\"\n");
-                sendCommand("TEXT 2,180,\"2\",0,1,1,\"重量:" + weight + "\"\n");
-                sendCommand("TEXT 2,210,\"2\",0,1,1,\"护士:测试\"\n");
-                sendCommand("TEXT 2,240,\"2\",0,1,1,\"时间:" + df.format(new Date()) + "\"\n");
-
-                // 二维码
-                sendCommand("QRCODE 270,110,H,1,M,0,\"二维码内容\"\n");
-
-                // 打印标签
-                usbUtil.sendData("PRINT 1,1\n".getBytes(StandardCharsets.UTF_8));
-
+               sendCommand(command);
                 Log.i(TAG, "打印完成");
-
             } catch (Exception e) {
                 Log.e(TAG, "打印异常", e);
             }
         }).start();
-    }
-
-    private void sendCommand(String cmd) {
-        usbUtil.sendData(cmd.getBytes(StandardCharsets.UTF_8));
     }
 
     // 绘图方法（保持不变）

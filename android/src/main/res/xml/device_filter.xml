@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--斑马Zebra系列打印机-->
-    <usb-device vendor-id="4611" />
+    <!--Zebra ZTC 110Xi4-600dpi-->
+    <usb-device vendor-id="4611" product-id="5393" />
     <!--小米米家喷墨一体机-->
-    <usb-device vendor-id="2655" product-id="8" />
+    <usb-device vendor-id="12332" product-id="5393" />
 
 </resources>

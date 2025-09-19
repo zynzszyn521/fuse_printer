@@ -11,13 +11,17 @@ class MethodChannelFusePrinter extends FusePrinterPlatform {
 
   @override
   Future<String?> getPlatformVersion() async {
-    final version = 
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
+    final version = await methodChannel.invokeMethod<String>(
+      'getPlatformVersion',
+    );
     return version;
   }
 
   @override
-  Future<bool?> printInit({required int vendorId, required int productId}) async {
+  Future<bool?> printInit({
+    required int vendorId,
+    required int productId,
+  }) async {
     final result = await methodChannel.invokeMethod<bool>('printInit', {
       'vendorId': vendorId,
       'productId': productId,
@@ -26,17 +30,19 @@ class MethodChannelFusePrinter extends FusePrinterPlatform {
   }
 
   @override
-  Future<bool?> printText({required String text, String align = 'left', int size = 1}) async {
-    final result = await methodChannel.invokeMethod<bool>('printText', {
-      'text': text,
-      'align': align,
-      'size': size,
+  Future<bool?> printCommand({required String command}) async {
+    final result = await methodChannel.invokeMethod<bool>('printCommand', {
+      'command': command,
     });
     return result;
   }
 
   @override
-  Future<bool?> printBarcode({required String code, String type = 'CODE128', int height = 100}) async {
+  Future<bool?> printBarcode({
+    required String code,
+    String type = 'CODE128',
+    int height = 100,
+  }) async {
     final result = await methodChannel.invokeMethod<bool>('printBarcode', {
       'code': code,
       'type': type,

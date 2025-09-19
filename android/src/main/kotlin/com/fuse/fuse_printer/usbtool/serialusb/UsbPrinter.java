@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * ❤
  * 模块：USB打印机管理类
  */
+
 public class UsbPrinter {
 
     private static final String TAG = "UsbPrinter";
@@ -37,17 +38,24 @@ public class UsbPrinter {
     private ConcurrentLinkedQueue<byte[]> mDataQueue;
     private boolean mIsPrinting = false;
     private boolean mIsRunning = false;
-    private static final int VENDOR_ID = 0x1203;//4611
-    private static final int PRODUCT_ID = 0x0130;//304
+    private int mVendorId;
+    private int mProductId;
 
-    private UsbPrinter(Context context) {
+
+    private UsbPrinter(Context context, int vendorId, int productId) {
         this.mContext = context.getApplicationContext();
         this.mDataQueue = new ConcurrentLinkedQueue<>();
+        this.mVendorId = vendorId;
+        this.mProductId = productId;
     }
 
-    public static synchronized UsbPrinter getInstance(Context context) {
+    public static synchronized UsbPrinter getInstance(Context context, int vendorId, int productId) {
         if (instance == null) {
-            instance = new UsbPrinter(context);
+            instance = new UsbPrinter(context, vendorId, productId);
+        } else {
+            // 如果参数不同则更新
+            instance.mVendorId = vendorId;
+            instance.mProductId = productId;
         }
         return instance;
     }
@@ -109,7 +117,7 @@ public class UsbPrinter {
             Log.i(TAG, "找到USB设备：vendorId=" + vendorId + ", productId=" + productId + ", deviceName=" + device.getDeviceName());
 
             // 这里可以根据需要过滤特定的设备
-            if (vendorId == VENDOR_ID && productId == PRODUCT_ID) {
+            if (vendorId == mVendorId && productId == mProductId) {
                 return device;
             }
         }

@@ -8,7 +8,10 @@ abstract class FusePrinter {
 
   // 打印机相关方法
   /// 初始化打印机
-  static Future<bool?> printInit({required int vendorId, required int productId}) {
+  static Future<bool?> printInit({
+    required int vendorId,
+    required int productId,
+  }) {
     return FusePrinterPlatform.instance.printInit(
       vendorId: vendorId,
       productId: productId,
@@ -16,16 +19,16 @@ abstract class FusePrinter {
   }
 
   /// 打印文本
-  static Future<bool?> printText({required String text, String align = 'left', int size = 1}) {
-    return FusePrinterPlatform.instance.printText(
-      text: text,
-      align: align,
-      size: size,
-    );
+  static Future<bool?> printCommand({required String command}) {
+    return FusePrinterPlatform.instance.printCommand(command: command);
   }
 
   /// 打印条码
-  static Future<bool?> printBarcode({required String code, String type = 'CODE128', int height = 100}) {
+  static Future<bool?> printBarcode({
+    required String code,
+    String type = 'CODE128',
+    int height = 100,
+  }) {
     return FusePrinterPlatform.instance.printBarcode(
       code: code,
       type: type,
@@ -43,16 +46,12 @@ abstract class FusePrinter {
 
   /// 打印图片
   static Future<bool?> printImage({required String imagePath}) {
-    return FusePrinterPlatform.instance.printImage(
-      imagePath: imagePath,
-    );
+    return FusePrinterPlatform.instance.printImage(imagePath: imagePath);
   }
 
   /// 发送TSC命令
   static Future<bool?> printTscCommand({required String command}) {
-    return FusePrinterPlatform.instance.printTscCommand(
-      command: command,
-    );
+    return FusePrinterPlatform.instance.printTscCommand(command: command);
   }
 
   /// 切纸
@@ -62,9 +61,7 @@ abstract class FusePrinter {
 
   /// 进纸
   static Future<bool?> printFeedPaper({int lines = 1}) {
-    return FusePrinterPlatform.instance.printFeedPaper(
-      lines: lines,
-    );
+    return FusePrinterPlatform.instance.printFeedPaper(lines: lines);
   }
 
   /// 关闭打印机连接

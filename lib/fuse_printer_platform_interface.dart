@@ -25,8 +25,8 @@ abstract class FusePrinterPlatform extends PlatformInterface {
     throw UnimplementedError('printInit() has not been implemented.');
   }
 
-  Future<bool?> printText({required String text, String align = 'left', int size = 1}) {
-    throw UnimplementedError('printText() has not been implemented.');
+  Future<bool?> printCommand({required String command}) {
+    throw UnimplementedError('printCommand() has not been implemented.');
   }
 
   Future<bool?> printBarcode({required String code, String type = 'CODE128', int height = 100}) {
