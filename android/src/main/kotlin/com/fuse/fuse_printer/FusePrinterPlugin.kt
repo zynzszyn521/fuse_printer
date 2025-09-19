@@ -1,4 +1,4 @@
-package com.fuse.printer.fuse_printer
+package com.fuse.fuse_printer
 
 import android.content.Context
 import android.hardware.usb.UsbDeviceConnection
@@ -6,7 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.NonNull
-import com.fuse.printer.fuse_printer.usbtool.USBCommunicationPlugin
+import com.fuse.fuse_printer.usbtool.USBCommunicationPlugin
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel

@@ -1,4 +1,4 @@
-package com.fuse.printer.fuse_printer.usbtool.serialusb;
+package com.fuse.fuse_printer.usbtool.serialusb;
 
 /**
  * 作者：CaoLiulang
