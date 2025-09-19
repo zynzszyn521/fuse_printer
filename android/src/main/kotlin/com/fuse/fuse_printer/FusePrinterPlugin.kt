@@ -5,7 +5,6 @@ import android.hardware.usb.UsbDeviceConnection
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.annotation.NonNull
 import com.fuse.fuse_printer.usbtool.USBCommunicationPlugin
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -22,7 +21,7 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
   private val CHANNEL_NAME = "com.fuse.printer/methods"
   private lateinit var mUSBCommunicationPlugin: USBCommunicationPlugin
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     context = flutterPluginBinding.applicationContext
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
@@ -31,7 +30,7 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     mUSBCommunicationPlugin.init(context, true)
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+  override fun onMethodCall(call: MethodCall, result: Result) {
     if (call.method == "getPlatformVersion") {
       result.success("Android ${android.os.Build.VERSION.RELEASE}")
     } else if (call.method == "printInit") {
@@ -140,7 +139,7 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
     try {
       mUSBCommunicationPlugin.close()

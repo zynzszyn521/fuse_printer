@@ -9,6 +9,7 @@ import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,6 +24,7 @@ import java.util.List;
  */
 public class USBUtil {
 
+    private static final String ACTION_USB_PERMISSION = "com.fuse.fuse_printer.usbtool.usbprinter.USB_PERMISSION";
     private static final String TAG = "USBUtil";
     private static USBUtil instance;
     private UsbManager mUsbManager;
@@ -42,6 +44,15 @@ public class USBUtil {
             instance = new USBUtil(context);
         }
         return instance;
+    }
+
+    public String getPermissionAction() {
+        return ACTION_USB_PERMISSION;
+    }
+
+    // 添加方便调用的发送字符串方法
+    public boolean sendString(String data) {
+        return sendData(data.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -90,7 +101,7 @@ public class USBUtil {
     /**
      * 查找USB设备
      */
-    private UsbDevice findUsbDevice(int vendorId, int productId) {
+    public UsbDevice findUsbDevice(int vendorId, int productId) {
         HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
 

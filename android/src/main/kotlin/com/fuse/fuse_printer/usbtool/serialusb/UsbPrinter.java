@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class UsbPrinter {
 
     private static final String TAG = "UsbPrinter";
+    public static final String ACTION_USB_PERMISSION = "com.usb.printer.USB_PERMISSION";
+    public static final String ACTION_USB_STATE = "android.hardware.usb.action.USB_STATE";
     private static UsbPrinter instance;
     private UsbManager mUsbManager;
     private Context mContext;
