@@ -1,6 +1,5 @@
 package com.fuse.fuse_printer.usbtool;
 
-import static com.fuse.fuse_printer.usbtool.serialusb.UsbPrinter.ACTION_USB_STATE;
 import static com.fuse.fuse_printer.usbtool.usbprinter.USBReceiver.ACTION_USB_PERMISSION;
 
 import android.annotation.SuppressLint;
@@ -18,8 +17,8 @@ import android.os.Message;
 import android.util.Log;
 
 import com.aill.androidserialport.SerialPort;
-import com.kung.usbtool.serialusb.UsbPrinter;
-import com.kung.usbtool.usbprinter.USBUtil;
+import com.fuse.fuse_printer.usbtool.serialusb.UsbPrinter;
+import com.fuse.fuse_printer.usbtool.usbprinter.USBUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

@@ -16,6 +16,7 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url "https://jitpack.io" }
         google()
         mavenCentral()
     }
@@ -52,6 +53,8 @@ android {
         testImplementation("org.mockito:mockito-core:5.0.0")
         // 添加zxing库用于二维码生成
         implementation 'com.google.zxing:core:3.4.1'
+        // 添加串口
+        implementation 'com.github.licheedev:Android-SerialPort-API:2.0.0'
     }
 
     testOptions {

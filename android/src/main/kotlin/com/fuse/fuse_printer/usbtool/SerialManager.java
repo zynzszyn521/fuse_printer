@@ -2,26 +2,22 @@ package com.fuse.fuse_printer.usbtool;
 
 import android.util.Log;
 
-import com.aill.androidserialport.ByteUtil;
-import com.aill.androidserialport.SerialPort;
+import android.serialport.SerialPort;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import com.fuse.fuse_printer.usbtool.serialusb.BytesUtil;
 
 public class SerialManager {
-    //串口命令示例
-//    private final String CMD_LIGHT_OPEN = "6a610111";
-//    private final String CMD_LIGHT_CLOSE = "6a610110";
 
     private SerialPort serialPort;
     private InputStream inputStream;
     private OutputStream outputStream;
-
     private boolean isOpened = false;
 
-    private static SerialManager INSTANCE = null;
+    private static volatile SerialManager INSTANCE = null;
 
     public static SerialManager getInstance() {
         if (INSTANCE == null) {
@@ -52,24 +48,6 @@ public class SerialManager {
         return serialPort;
     }
 
-    /**
-     * 打开补光灯
-     */
-//    public void openLight() {
-//        openSerial();
-//        send(CMD_LIGHT_OPEN);
-//        isOpened = true;
-//    }
-
-    /**
-     * 关闭补光灯
-     */
-//    public void closeLight() {
-//        openSerial();
-//        send(CMD_LIGHT_CLOSE);
-//        isOpened = false;
-//    }
-
     public boolean isOpened() {
         return isOpened;
     }
@@ -79,42 +57,60 @@ public class SerialManager {
             return;
         }
         try {
-            //串口文件(根据设备)、波特率
-            serialPort = new SerialPort(new File("/dev/ttyS1"), 9600, 0);
+            // ✅ 使用 Builder 构建串口，这才是正确方式！
+            serialPort = SerialPort.newBuilder(new File("/dev/ttyS1"), 9600)
+                    .dataBits(8)      // 数据位：5/6/7/8
+                    .parity(0)        // 校验位：0=无, 1=奇, 2=偶
+                    .stopBits(1)      // 停止位：1 或 2
+                    .build();         // 自动调用私有构造函数
+
             inputStream = serialPort.getInputStream();
             outputStream = serialPort.getOutputStream();
+            isOpened = true;
+            Log.i("SerialManager", "串口打开成功");
+
+        } catch (SecurityException e) {
+            Log.e("SerialManager", "串口权限不足，请确保有读写权限", e);
+            isOpened = false;
         } catch (IOException e) {
-            Log.e("8888888888888888888", "fail");
-            e.printStackTrace();
+            Log.e("SerialManager", "打开串口失败", e);
+            isOpened = false;
         }
     }
 
-    private void send(String s) {
+    private void send(String hex) {
+        if (outputStream == null || !isOpened) {
+            Log.e("SerialManager", "串口未打开，无法发送数据");
+            return;
+        }
         try {
-            byte[] data = ByteUtil.hexStringToByteArray(s);
+            byte[] data = BytesUtil.hexStringToByteArray(hex);
             outputStream.write(data);
             outputStream.flush();
+            Log.d("SerialManager", "发送数据: " + hex);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("SerialManager", "发送数据失败", e);
         }
     }
 
     private void close() {
         try {
-            if (serialPort != null) {
-                serialPort.close();
-                serialPort = null;
+            if (outputStream != null) {
+                outputStream.close();
+                outputStream = null;
             }
             if (inputStream != null) {
                 inputStream.close();
                 inputStream = null;
             }
-            if (outputStream != null) {
-                outputStream.close();
-                outputStream = null;
+            if (serialPort != null) {
+                serialPort.close(); // 会自动关闭 fd 和流
+                serialPort = null;
             }
+            isOpened = false;
+            Log.i("SerialManager", "串口已关闭");
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("SerialManager", "关闭串口异常", e);
         }
     }
 }
