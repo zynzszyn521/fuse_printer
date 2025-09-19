@@ -16,6 +16,7 @@ import android.util.Log;
  */
 public class USBReceiver extends BroadcastReceiver {
 
+    public static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private static final String TAG = "USBReceiver";
     private USBStateListener mListener;
 
@@ -51,7 +52,7 @@ public class USBReceiver extends BroadcastReceiver {
             if (mListener != null) {
                 mListener.onDeviceDetached(device);
             }
-        } else if (UsbManager.ACTION_USB_PERMISSION.equals(action)) {
+            } else if (ACTION_USB_PERMISSION.equals(action)) {
             // USB权限请求结果
             boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
             if (granted) {
