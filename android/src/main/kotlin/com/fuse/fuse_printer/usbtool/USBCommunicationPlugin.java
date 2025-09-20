@@ -18,10 +18,14 @@ import android.util.Log;
 
 import com.fuse.fuse_printer.usbtool.usbprinter.USBUtil;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -242,7 +246,33 @@ public class USBCommunicationPlugin {
         }
         new Thread(() -> {
             try {
-               sendCommand(command);
+               //sendCommand(command);
+                byte[] init = new byte[] {0x1B, 0x40}; // 初始化
+                byte[] text = new byte[] {0x48, 0x65, 0x6C, 0x6C, 0x6F}; //Hello
+                byte[] newline = new byte[]{0x0A, 0x1B, 0x64, 0x04}; //换行+走纸
+                usbUtil.sendData(init);
+                usbUtil.sendData(text);
+                usbUtil.sendData(newline);
+//                File file = new File(mContext.getFilesDir(), "123.bin");
+//                byte[] data = null;
+//                try {
+//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                        data = Files.readAllBytes(file.toPath());
+//                    }else{
+//                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                        try (InputStream is = new FileInputStream(file)) {
+//                            byte[] buffer = new byte[1024];
+//                            int read;
+//                            while ((read = is.read(buffer)) != -1) {
+//                                baos.write(buffer, 0, read);
+//                            }
+//                        }
+//                        data = baos.toByteArray();
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                usbUtil.sendData(data);
                 Log.i(TAG, "打印完成");
             } catch (Exception e) {
                 Log.e(TAG, "打印异常", e);

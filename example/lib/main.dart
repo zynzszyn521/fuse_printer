@@ -40,6 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final Map<String, Map<String, int>> _printerDevices = {
     'Zebra ZTC 110Xi4-600dpi': {'vendorId': 4611, 'productId': 304},
     '小米米家喷墨打印一体机': {'vendorId': 12332, 'productId': 5393},
+    '爱立熊迷你打印机A2': {'vendorId': 2501, 'productId': 512},
   };
 
   String _selectedPrinter = 'Zebra ZTC 110Xi4-600dpi';
