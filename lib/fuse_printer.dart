@@ -78,7 +78,7 @@ abstract class FusePrinter {
   }
 
   /// 获取打印机状态
-  static Future<String?> getPrinterStatus() {
+  static Future<bool?> getPrinterStatus() {
     return FusePrinterPlatform.instance.getPrinterStatus();
   }
 }

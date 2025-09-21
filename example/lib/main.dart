@@ -120,9 +120,11 @@ class _MyHomePageState extends State<MyHomePage> {
   // 获取打印机状态
   Future<void> getPrinterStatus() async {
     try {
-      final status = await FusePrinter.getPrinterStatus();
+      bool? bConnected = await FusePrinter.getPrinterStatus();
       setState(() {
-        _printerStatus = status ?? '未知状态';
+        if (bConnected == null) {
+          _printerStatus = '未知状态';
+        }
       });
     } on PlatformException catch (e) {
       showSnackbar('获取状态异常: ${e.message}');
@@ -176,20 +178,39 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  testEscPos() async {
+  Future<void> testEscPos() async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
-    bytes = [];
-    Uint8List title = Uint8List.fromList(gbk.encode('*** Test(测试) ***'));
+    bytes.clear();
+
+    // 启用中文
+    bytes += [0x1C, 0x26];
+
+    // 标题
+    final title = gbk.encode('*** Test(测试) ***\r\n');
     bytes += generator.textEncoded(
-      title,
+      Uint8List.fromList(title),
       styles: PosStyles(align: PosAlign.center, bold: true),
     );
+
+    // 分割线
     bytes += generator.hr();
-    Uint8List time = Uint8List.fromList(
-      gbk.encode('Time(时间): ${DateTime.now()}'),
+
+    // 一维码
+    bytes += generator.barcode(Barcode.code128('123456'.codeUnits));
+    // 二维码
+    bytes += generator.qrcode(
+      '123456',
+      size: QRSize.size8,
+      cor: QRCorrection.L,
     );
-    bytes += generator.textEncoded(time, linesAfter: 1);
+
+    //时间
+    final timeStr = 'Time(时间): ${DateTime.now()}\r\n';
+    final timeBytes = gbk.encode(timeStr);
+    bytes += generator.textEncoded(Uint8List.fromList(timeBytes));
+
+    //切纸
     bytes += generator.cut();
   }
 

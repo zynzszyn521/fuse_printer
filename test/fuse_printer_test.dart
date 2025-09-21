@@ -13,7 +13,7 @@ class MockPlusTestPlatform
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<String?> getPrinterStatus() {
+  Future<bool?> getPrinterStatus() {
     // TODO: implement getPrinterStatus
     throw UnimplementedError();
   }

@@ -68,7 +68,7 @@ abstract class FusePrinterPlatform extends PlatformInterface {
     throw UnimplementedError('printClose() has not been implemented.');
   }
 
-  Future<String?> getPrinterStatus() {
+  Future<bool?> getPrinterStatus() {
     throw UnimplementedError('getPrinterStatus() has not been implemented.');
   }
 }
