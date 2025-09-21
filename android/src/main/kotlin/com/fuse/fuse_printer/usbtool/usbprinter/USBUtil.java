@@ -60,6 +60,7 @@ public class USBUtil {
      * 初始化USB设备
      */
     public boolean initUsbDevice(int vendorId, int productId) {
+        mUsbDeviceConnection = null;
         if (mUsbManager == null) {
             mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
         }

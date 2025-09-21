@@ -124,6 +124,8 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         if (bConnected == null) {
           _printerStatus = '未知状态';
+        } else if (bConnected == false) {
+          disconnectPrinter();
         }
       });
     } on PlatformException catch (e) {
@@ -163,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       // final text =
       // _textController.text.isEmpty ? '测试打印文本' : _textController.text;
-      testEscPos();
+      await testEscPos();
       final success = await FusePrinter.printTextEx(
         data: Uint8List.fromList(bytes),
       );
@@ -180,7 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> testEscPos() async {
     final CapabilityProfile profile = await CapabilityProfile.load();
-    profile.codePages=[];
+    profile.codePages = [];
     final generator = Generator(PaperSize.mm58, profile);
     bytes.clear();
 
