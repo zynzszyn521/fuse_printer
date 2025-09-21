@@ -11,6 +11,9 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 
 
 /** FusePrinterPlugin */
@@ -19,14 +22,63 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var context: Context
   private lateinit var channel: MethodChannel
   private val CHANNEL_NAME = "com.fuse.printer/methods"
+  private val EVENT_CHANNEL_NAME = "com.fuse.printer/events"
   private lateinit var mUSBCommunicationPlugin: USBCommunicationPlugin
+  private lateinit var eventChannel: EventChannel
+  private var eventSink: EventSink? = null
+
+  // USB state listener that forwards events to Flutter via eventSink
+  private val usbStateListener = object : USBCommunicationPlugin.USBStateListener {
+    override fun onUSBDeviceDetached() {
+      val map = mapOf("event" to "detached")
+      eventSink?.success(map)
+    }
+
+    override fun onUSBDeviceAttached() {
+      val map = mapOf("event" to "attached")
+      eventSink?.success(map)
+    }
+
+    override fun onUSBPrintStateChanged(connected: Boolean) {
+      val map = mapOf("event" to "state", "connected" to connected)
+      eventSink?.success(map)
+    }
+
+    override fun onUSBReceiveWeightData(data: String) {
+      val map = mapOf("event" to "data", "data" to data)
+      eventSink?.success(map)
+    }
+  }
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     context = flutterPluginBinding.applicationContext
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
     mUSBCommunicationPlugin = USBCommunicationPlugin()
+    // initialize USB communication (auto-connect runs in background)
     mUSBCommunicationPlugin.init(context, 0,0)
+
+    // Event channel for connection/status updates
+    eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, EVENT_CHANNEL_NAME)
+    eventChannel.setStreamHandler(object : StreamHandler {
+      override fun onListen(arguments: Any?, events: EventSink?) {
+        eventSink = events
+        // forward current status immediately
+        try {
+          val connected = mUSBCommunicationPlugin.getPrinterStatus()
+          eventSink?.success(mapOf("event" to "state", "connected" to connected))
+        } catch (_: Exception) {
+          // ignore
+        }
+      }
+
+      override fun onCancel(arguments: Any?) {
+        eventSink = null
+      }
+    })
+
+    // attach listener to the USB plugin so we can forward events
+    mUSBCommunicationPlugin.setUSBStateListener(usbStateListener)
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -150,6 +202,9 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
     try {
+      // remove event listener and close
+      eventChannel.setStreamHandler(null)
+      mUSBCommunicationPlugin.setUSBStateListener(null)
       mUSBCommunicationPlugin.close()
     } catch (e: Exception) {
       Log.e("FusePrinterPlugin", "Error closing USB: ${e.message}")

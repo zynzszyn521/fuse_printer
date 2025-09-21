@@ -34,6 +34,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _platformVersion = 'Unknown';
   String _printerStatus = '未连接';
   bool _isPrinterConnected = false;
+  static const EventChannel _printerEventChannel = EventChannel('com.fuse.printer/events');
+  StreamSubscription<dynamic>? _printerEventSubscription;
   final TextEditingController _textController = TextEditingController(
     text: 'Hello, Printer!',
   );
@@ -54,6 +56,41 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     initPlatformState();
+    _startPrinterEventListener();
+  }
+
+  void _startPrinterEventListener() {
+    // Subscribe to native events from the plugin
+    _printerEventSubscription = _printerEventChannel
+        .receiveBroadcastStream()
+        .listen((dynamic event) {
+      if (event == null) return;
+      final Map<dynamic, dynamic> map = Map<dynamic, dynamic>.from(event);
+      final String? ev = map['event'] as String?;
+      if (ev == null) return;
+      if (ev == 'state') {
+        final bool connected = map['connected'] as bool? ?? false;
+        setState(() {
+          _isPrinterConnected = connected;
+          _printerStatus = connected ? '已连接' : '未连接';
+        });
+      } else if (ev == 'attached') {
+        setState(() {
+          _printerStatus = '设备已插入';
+        });
+      } else if (ev == 'detached') {
+        setState(() {
+          _isPrinterConnected = false;
+          _printerStatus = '已拔出';
+        });
+      } else if (ev == 'data') {
+        final dynamic data = map['data'];
+        // you can handle incoming data here if needed
+        debugPrint('Printer data event: $data');
+      }
+    }, onError: (dynamic err) {
+      debugPrint('Printer event error: $err');
+    });
   }
 
   Future<void> initPlatformState() async {
@@ -82,15 +119,11 @@ class _MyHomePageState extends State<MyHomePage> {
       if (success != null && success) {
         setState(() {
           _isPrinterConnected = true;
-          _printerStatus = '已连接';
         });
         showSnackbar('打印机连接成功');
-        // 连接成功后获取打印机状态
-        getPrinterStatus();
       } else {
         setState(() {
           _isPrinterConnected = false;
-          _printerStatus = '连接失败';
         });
         showSnackbar('打印机连接失败');
       }
@@ -114,22 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
       showSnackbar(success != null && success ? '打印机已断开' : '断开失败');
     } on PlatformException catch (e) {
       showSnackbar('断开异常: ${e.message}');
-    }
-  }
-
-  // 获取打印机状态
-  Future<void> getPrinterStatus() async {
-    try {
-      bool? bConnected = await FusePrinter.getPrinterStatus();
-      setState(() {
-        if (bConnected == null) {
-          _printerStatus = '未知状态';
-        } else if (bConnected == false) {
-          disconnectPrinter();
-        }
-      });
-    } on PlatformException catch (e) {
-      showSnackbar('获取状态异常: ${e.message}');
     }
   }
 
@@ -181,9 +198,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> testEscPos() async {
-    final CapabilityProfile profile = await CapabilityProfile.load();
-    profile.codePages = [];
-    final generator = Generator(PaperSize.mm58, profile);
+  final CapabilityProfile profile = await CapabilityProfile.load();
+  profile.codePages = [];
     bytes.clear();
 
     // // 标题
@@ -382,16 +398,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: const Text('断开连接'),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: getPrinterStatus,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                    ),
-                    child: const Text('获取状态'),
-                  ),
-                ),
               ],
             ),
 
@@ -477,6 +483,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _textController.dispose();
     _barcodeController.dispose();
     _qrCodeController.dispose();
+    _printerEventSubscription?.cancel();
     super.dispose();
   }
 }
