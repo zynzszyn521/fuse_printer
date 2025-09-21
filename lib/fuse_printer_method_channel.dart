@@ -105,8 +105,8 @@ class MethodChannelFusePrinter extends FusePrinterPlatform {
   }
 
   @override
-  Future<String?> getPrinterStatus() async {
-    final result = await methodChannel.invokeMethod<String>('getPrinterStatus');
+  Future<bool?> getPrinterStatus() async {
+    final result = await methodChannel.invokeMethod<bool>('getPrinterStatus');
     return result;
   }
 }
