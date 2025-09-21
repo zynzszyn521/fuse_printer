@@ -37,7 +37,13 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
       val productId = call.argument<Int>("productId") ?: 0
       try {
         mUSBCommunicationPlugin.init(context, vendorId, productId)
-        result.success(true)
+        // init is asynchronous and doesn't throw on failure; check current connection status
+        val connected = try {
+          mUSBCommunicationPlugin.getPrinterStatus()
+        } catch (_: Exception) {
+          false
+        }
+        result.success(connected)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print init error: ${e.message}")
         result.error("PRINT_INIT_ERROR", "初始化打印机失败: ${e.message}", null)

@@ -179,39 +179,42 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> testEscPos() async {
-    final profile = await CapabilityProfile.load();
+    final CapabilityProfile profile = await CapabilityProfile.load();
+    profile.codePages=[];
     final generator = Generator(PaperSize.mm58, profile);
     bytes.clear();
 
-    // 启用中文
-    bytes += [0x1C, 0x26];
-
-    // 标题
-    final title = gbk.encode('*** Test(测试) ***\r\n');
-    bytes += generator.textEncoded(
-      Uint8List.fromList(title),
-      styles: PosStyles(align: PosAlign.center, bold: true),
-    );
-
-    // 分割线
-    bytes += generator.hr();
-
-    // 一维码
-    bytes += generator.barcode(Barcode.code128('123456'.codeUnits));
-    // 二维码
-    bytes += generator.qrcode(
-      '123456',
-      size: QRSize.size8,
-      cor: QRCorrection.L,
-    );
-
+    // // 标题
+    // final title = gbk.encode('*** Test(测试) ***\r\n');
+    // bytes += generator.textEncoded(
+    //   Uint8List.fromList(title),
+    //   styles: PosStyles(align: PosAlign.center, bold: true),
+    // );
+    // // 分割线
+    // bytes += generator.hr();
+    // // 一维码
+    // bytes += generator.barcode(Barcode.code128('123456'.codeUnits));
+    // // 二维码
+    // bytes += generator.qrcode(
+    //   '123456',
+    //   size: QRSize.size8,
+    //   cor: QRCorrection.L,
+    // );
+    // // 分割线
+    // bytes += generator.hr();
+    bytes.addAll('123456\r\n'.codeUnits);
+    // bytes += generator.row([
+    //   PosColumn(width:9, text: '炒饼', styles: PosStyles(align: PosAlign.left), containsChinese: true),
+    //   PosColumn(width:3, text: '￥1,990', styles: PosStyles(align: PosAlign.right), containsChinese: true),
+    // ]);
+    // bytes +=[13, 10];
     //时间
-    final timeStr = 'Time(时间): ${DateTime.now()}\r\n';
-    final timeBytes = gbk.encode(timeStr);
-    bytes += generator.textEncoded(Uint8List.fromList(timeBytes));
+    // final timeStr = 'Time(时间): ${DateTime.now()}\r\n';
+    // final timeBytes = gbk.encode(timeStr);
+    // bytes += generator.textEncoded(Uint8List.fromList(timeBytes));
 
     //切纸
-    bytes += generator.cut();
+    // bytes += generator.cut();
   }
 
   // 打印条码

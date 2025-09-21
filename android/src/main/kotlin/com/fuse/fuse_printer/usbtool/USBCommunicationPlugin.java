@@ -300,6 +300,13 @@ public class USBCommunicationPlugin {
         }
         new Thread(() -> {
             try {
+                byte[] init;
+                if(mVendorId==2501){
+                    init = new byte[] {0x10, (byte)0xFF, (byte)0xFE, 0x01, 0x1B, 0x40}; // 爱立熊初始化
+                }else{
+                    init = new byte[] {0x1B, 0x40}; // 标准初始化
+                }
+                usbUtil.sendData(init);
                 usbUtil.sendData(data);
                 Log.i(TAG, "打印完成");
             } catch (Exception e) {
