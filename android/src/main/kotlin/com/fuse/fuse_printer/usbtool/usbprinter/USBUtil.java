@@ -179,7 +179,6 @@ public class USBUtil {
 
         try {
             int ret = mUsbDeviceConnection.bulkTransfer(mUsbEndpointOut, data, data.length, 3000);
-            Log.i(TAG, "尝试发送 " + data.length + " 字节，实际发送: " + ret);
             if (ret < 0) {
                 Log.e(TAG, "发送数据失败：" + ret);
                 return false;

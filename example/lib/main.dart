@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:fuse_printer/fuse_printer.dart';
+import 'package:gbk_codec/gbk_codec.dart';
 
 void main() {
   runApp(const PrinterApp());
@@ -32,9 +34,12 @@ class _MyHomePageState extends State<MyHomePage> {
   String _platformVersion = 'Unknown';
   String _printerStatus = '未连接';
   bool _isPrinterConnected = false;
-  TextEditingController _textController = TextEditingController();
-  TextEditingController _barcodeController = TextEditingController();
-  TextEditingController _qrCodeController = TextEditingController();
+  final TextEditingController _textController = TextEditingController(
+    text: 'Hello, Printer!',
+  );
+  final TextEditingController _barcodeController = TextEditingController();
+  final TextEditingController _qrCodeController = TextEditingController();
+  List<int> bytes = [];
 
   // 常见打印机的Vendor ID和Product ID
   final Map<String, Map<String, int>> _printerDevices = {
@@ -134,24 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final text =
           _textController.text.isEmpty ? '测试打印文本' : _textController.text;
-      String command = '''
-SIZE 54 mm,38 mm
-GAP 2 mm,0 mm
-DIRECTION 1
-CLS
-BOX 0,0,360,50,2
-TEXT 2,10,"3",0,1.2,1.2,"$text"
-BAR 0,75,380,3
-TEXT 2,90,"4",0,1,1,"科室：测试"
-TEXT 2,120,"2",0,1,1,"车号:测试"
-TEXT 2,150,"2",0,1,1,"类型:测试"
-TEXT 2,180,"2",0,1,1,"重量:123kg"
-TEXT 2,210,"2",0,1,1,"护士:测试"
-TEXT 2,240,"2",0,1,1,"时间:2025-09-20"
-QRCODE 270,110,H,1,M,0,"二维码内容"
-PRINT 1,1
-''';
-      final success = await FusePrinter.printCommand(command: command);
+      final success = await FusePrinter.printText(text: "$text\n");
       if (success != null && success) {
         await FusePrinter.printFeedPaper(lines: 3);
         showSnackbar('文本打印成功');
@@ -161,6 +149,48 @@ PRINT 1,1
     } on PlatformException catch (e) {
       showSnackbar('打印异常: ${e.message}');
     }
+  }
+
+  // 打印扩展文本
+  Future<void> printTextEx() async {
+    if (!_isPrinterConnected) {
+      showSnackbar('请先连接打印机');
+      return;
+    }
+
+    try {
+      // final text =
+      // _textController.text.isEmpty ? '测试打印文本' : _textController.text;
+      testEscPos();
+      final success = await FusePrinter.printTextEx(
+        data: Uint8List.fromList(bytes),
+      );
+      if (success != null && success) {
+        await FusePrinter.printFeedPaper(lines: 3);
+        showSnackbar('文本打印成功');
+      } else {
+        showSnackbar('文本打印失败');
+      }
+    } on PlatformException catch (e) {
+      showSnackbar('打印异常: ${e.message}');
+    }
+  }
+
+  testEscPos() async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm58, profile);
+    bytes = [];
+    Uint8List title = Uint8List.fromList(gbk.encode('*** Test(测试) ***'));
+    bytes += generator.textEncoded(
+      title,
+      styles: PosStyles(align: PosAlign.center, bold: true),
+    );
+    bytes += generator.hr();
+    Uint8List time = Uint8List.fromList(
+      gbk.encode('Time(时间): ${DateTime.now()}'),
+    );
+    bytes += generator.textEncoded(time, linesAfter: 1);
+    bytes += generator.cut();
   }
 
   // 打印条码
@@ -224,11 +254,11 @@ PRINT 1,1
 
     try {
       // 打印标题
-      await FusePrinter.printCommand(command: '=== 打印测试页面 ===');
+      await FusePrinter.printText(text: '=== 打印测试页面 ===');
       await FusePrinter.printFeedPaper();
 
       // 打印文本
-      await FusePrinter.printCommand(command: '这是一段测试文本');
+      await FusePrinter.printText(text: '这是一段测试文本');
       await FusePrinter.printFeedPaper();
 
       // 打印条码
@@ -313,7 +343,7 @@ PRINT 1,1
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                     ),
-                    child: const Text('连接打印机'),
+                    child: const Text('连接设备'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -355,6 +385,12 @@ PRINT 1,1
               onPressed: printText,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text('打印文本'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: printTextEx,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('打印文本扩展'),
             ),
 
             const SizedBox(height: 20),

@@ -42,15 +42,29 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
         Log.e("FusePrinterPlugin", "Print init error: ${e.message}")
         result.error("PRINT_INIT_ERROR", "初始化打印机失败: ${e.message}", null)
       }
-    } else if (call.method == "printCommand") {
-      // 打印指令
-      val command = call.argument<String>("command") ?: ""
+    } else if (call.method == "printText") {
+      // 打印文本
+      val text = call.argument<String>("text") ?: ""
       try {
-        mUSBCommunicationPlugin.doPrintCommand(command)
+        mUSBCommunicationPlugin.doPrintText(text)
         result.success(true)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print text error: ${e.message}")
         result.error("PRINT_TEXT_ERROR", "打印文本失败: ${e.message}", null)
+      }
+    } else if (call.method == "printTextEx") {
+      // 打印文本
+      val data = call.argument<ByteArray>("data")
+      if (data == null || data.isEmpty()) {
+        result.error("INVALID_DATA", "传入的字节数组为空", null)
+        return
+      }
+      try {
+        mUSBCommunicationPlugin.doPrintTextEx(data)
+        result.success(true)
+      } catch (e: Exception) {
+        Log.e("FusePrinterPlugin", "Print textEx error: ${e.message}")
+        result.error("PRINT_TEXTEX_ERROR", "打印扩展文本失败: ${e.message}", null)
       }
     } else if (call.method == "printBarcode") {
       // 打印条码
@@ -84,16 +98,6 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print image error: ${e.message}")
         result.error("PRINT_IMAGE_ERROR", "打印图片失败: ${e.message}", null)
-      }
-    } else if (call.method == "printCommand") {
-      // 打印命令
-      val command = call.argument<String>("command") ?: ""
-      try {
-        mUSBCommunicationPlugin.doPrintCommand(command)
-        result.success(true)
-      } catch (e: Exception) {
-        Log.e("FusePrinterPlugin", "Print command error: ${e.message}")
-        result.error("PRINT_ERROR", "打印命令失败: ${e.message}", null)
       }
     } else if (call.method == "printCutPaper") {
       // 切纸

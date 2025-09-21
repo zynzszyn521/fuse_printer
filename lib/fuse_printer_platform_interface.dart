@@ -1,3 +1,6 @@
+
+import 'dart:typed_data';
+
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'fuse_printer_method_channel.dart';
@@ -25,11 +28,19 @@ abstract class FusePrinterPlatform extends PlatformInterface {
     throw UnimplementedError('printInit() has not been implemented.');
   }
 
-  Future<bool?> printCommand({required String command}) {
-    throw UnimplementedError('printCommand() has not been implemented.');
+  Future<bool?> printText({required String text}) {
+    throw UnimplementedError('printText() has not been implemented.');
   }
 
-  Future<bool?> printBarcode({required String code, String type = 'CODE128', int height = 100}) {
+  Future<bool?> printTextEx({required Uint8List data}) {
+    throw UnimplementedError('printTextEx() has not been implemented.');
+  }
+
+  Future<bool?> printBarcode({
+    required String code,
+    String type = 'CODE128',
+    int height = 100,
+  }) {
     throw UnimplementedError('printBarcode() has not been implemented.');
   }
 

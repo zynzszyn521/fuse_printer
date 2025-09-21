@@ -1,3 +1,6 @@
+
+import 'dart:typed_data';
+
 import 'fuse_printer_platform_interface.dart';
 
 abstract class FusePrinter {
@@ -19,8 +22,13 @@ abstract class FusePrinter {
   }
 
   /// 打印文本
-  static Future<bool?> printCommand({required String command}) {
-    return FusePrinterPlatform.instance.printCommand(command: command);
+  static Future<bool?> printText({required String text}) {
+    return FusePrinterPlatform.instance.printText(text: text);
+  }
+
+  /// 打印扩展文本
+  static Future<bool?> printTextEx({required Uint8List data}) {
+    return FusePrinterPlatform.instance.printTextEx(data: data);
   }
 
   /// 打印条码

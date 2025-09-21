@@ -30,9 +30,17 @@ class MethodChannelFusePrinter extends FusePrinterPlatform {
   }
 
   @override
-  Future<bool?> printCommand({required String command}) async {
-    final result = await methodChannel.invokeMethod<bool>('printCommand', {
-      'command': command,
+  Future<bool?> printText({required String text}) async {
+    final result = await methodChannel.invokeMethod<bool>('printText', {
+      'text': text,
+    });
+    return result;
+  }
+
+  @override
+  Future<bool?> printTextEx({required Uint8List data}) async {
+    final result = await methodChannel.invokeMethod<bool>('printTextEx', {
+      'data': data,
     });
     return result;
   }

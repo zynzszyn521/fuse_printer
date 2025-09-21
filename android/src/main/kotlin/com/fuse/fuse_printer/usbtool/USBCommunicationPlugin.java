@@ -27,6 +27,7 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Timer;
@@ -238,21 +239,20 @@ public class USBCommunicationPlugin {
         usbUtil.sendData(cmd.getBytes(StandardCharsets.UTF_8));
     }
 
-    // 打印方法
-    public void doPrintCommand(String command) {
+    // 打印文本(ESC)
+    public void doPrintText(String text) {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法打印");
             return;
         }
         new Thread(() -> {
             try {
-               //sendCommand(command);
-                byte[] init = new byte[] {0x1B, 0x40}; // 初始化
-                byte[] text = new byte[] {0x48, 0x65, 0x6C, 0x6C, 0x6F}; //Hello
-                byte[] newline = new byte[]{0x0A, 0x1B, 0x64, 0x04}; //换行+走纸
+                Log.i(TAG, "打印内容:"+text);
+                byte[] init = new byte[] {0x10, (byte)0xFF, (byte)0xFE, 0x01, 0x1B, 0x40}; // 初始化
+                byte[] data = text.getBytes("GBK");
                 usbUtil.sendData(init);
-                usbUtil.sendData(text);
-                usbUtil.sendData(newline);
+                usbUtil.sendData(data);
+
 //                File file = new File(mContext.getFilesDir(), "123.bin");
 //                byte[] data = null;
 //                try {
@@ -269,10 +269,22 @@ public class USBCommunicationPlugin {
 //                        }
 //                        data = baos.toByteArray();
 //                    }
+//                    if (data != null && data.length > 0) {
+//                        // 截取最后 200 字节，如果不足 200，则从头开始
+//                        int start = Math.max(0, data.length - 200);
+//                        byte[] tail = Arrays.copyOfRange(data, start, data.length);
+//                        // 打印十六进制
+//                        StringBuilder sb = new StringBuilder();
+//                        for (byte b : tail) {
+//                            sb.append(String.format("%02X ", b));
+//                        }
+//                        Log.i("UsbPrinter", "123.bin 最后 200 字节: " + sb.toString());
+//                    }
 //                } catch (IOException e) {
 //                    e.printStackTrace();
 //                }
 //                usbUtil.sendData(data);
+
                 Log.i(TAG, "打印完成");
             } catch (Exception e) {
                 Log.e(TAG, "打印异常", e);
@@ -280,7 +292,29 @@ public class USBCommunicationPlugin {
         }).start();
     }
 
-    // 绘图方法（保持不变）
+    // 打印扩展文本
+    public void doPrintTextEx(byte[] data) {
+        if (!usbUtil.isConnected()) {
+            Log.e(TAG, "USB未连接，无法打印");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                usbUtil.sendData(data);
+                Log.i(TAG, "打印完成");
+            } catch (Exception e) {
+                Log.e(TAG, "打印异常", e);
+            }
+        }).start();
+    }
+
+    public byte[] printlabel(int quantity, int copy) {
+        String message = "";
+        message = "PRINT " + quantity + ", " + copy + "\r\n";
+        return message.getBytes();
+    }
+
+    // 绘图方法
     public void tspl_drawGraphic(int start_x, int start_y, Bitmap bmp) {
         int bmp_size_x = bmp.getWidth();
         int bmp_size_y = bmp.getHeight();
