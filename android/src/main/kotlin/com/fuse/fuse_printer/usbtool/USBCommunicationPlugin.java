@@ -239,7 +239,7 @@ public class USBCommunicationPlugin {
         usbUtil.sendData(cmd.getBytes(StandardCharsets.UTF_8));
     }
 
-    // 打印文本(ESC)
+    // 打印文本
     public void doPrintText(String text) {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法打印");
@@ -249,7 +249,7 @@ public class USBCommunicationPlugin {
             try {
                 Log.i(TAG, "打印内容:"+text);
                 byte[] init = new byte[] {0x10, (byte)0xFF, (byte)0xFE, 0x01, 0x1B, 0x40}; // 初始化
-                byte[] data = text.getBytes("GBK");
+                byte[] data = text.getBytes(StandardCharsets.UTF_8);
                 usbUtil.sendData(init);
                 usbUtil.sendData(data);
 
@@ -306,12 +306,6 @@ public class USBCommunicationPlugin {
                 Log.e(TAG, "打印异常", e);
             }
         }).start();
-    }
-
-    public byte[] printlabel(int quantity, int copy) {
-        String message = "";
-        message = "PRINT " + quantity + ", " + copy + "\r\n";
-        return message.getBytes();
     }
 
     // 绘图方法
