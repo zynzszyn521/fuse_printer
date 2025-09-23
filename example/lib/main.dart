@@ -34,7 +34,9 @@ class _MyHomePageState extends State<MyHomePage> {
   String _platformVersion = 'Unknown';
   String _printerStatus = '未连接';
   bool _isPrinterConnected = false;
-  static const EventChannel _printerEventChannel = EventChannel('com.fuse.printer/events');
+  static const EventChannel _printerEventChannel = EventChannel(
+    'com.fuse.printer/events',
+  );
   StreamSubscription<dynamic>? _printerEventSubscription;
   final TextEditingController _textController = TextEditingController(
     text: 'Hello, Printer!',
@@ -45,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // 常见打印机的Vendor ID和Product ID
   final Map<String, Map<String, int>> _printerDevices = {
-    'Zebra ZTC 110Xi4-600dpi': {'vendorId': 4611, 'productId': 304},
+    'Zebra ZTC 110Xi4-600dpi': {'vendorId': 2655, 'productId': 171},
     '小米米家喷墨打印一体机': {'vendorId': 12332, 'productId': 5393},
     '爱立熊迷你打印机A2': {'vendorId': 2501, 'productId': 512},
   };
@@ -63,34 +65,37 @@ class _MyHomePageState extends State<MyHomePage> {
     // Subscribe to native events from the plugin
     _printerEventSubscription = _printerEventChannel
         .receiveBroadcastStream()
-        .listen((dynamic event) {
-      if (event == null) return;
-      final Map<dynamic, dynamic> map = Map<dynamic, dynamic>.from(event);
-      final String? ev = map['event'] as String?;
-      if (ev == null) return;
-      if (ev == 'state') {
-        final bool connected = map['connected'] as bool? ?? false;
-        setState(() {
-          _isPrinterConnected = connected;
-          _printerStatus = connected ? '已连接' : '未连接';
-        });
-      } else if (ev == 'attached') {
-        setState(() {
-          _printerStatus = '设备已插入';
-        });
-      } else if (ev == 'detached') {
-        setState(() {
-          _isPrinterConnected = false;
-          _printerStatus = '已拔出';
-        });
-      } else if (ev == 'data') {
-        final dynamic data = map['data'];
-        // you can handle incoming data here if needed
-        debugPrint('Printer data event: $data');
-      }
-    }, onError: (dynamic err) {
-      debugPrint('Printer event error: $err');
-    });
+        .listen(
+          (dynamic event) {
+            if (event == null) return;
+            final Map<dynamic, dynamic> map = Map<dynamic, dynamic>.from(event);
+            final String? ev = map['event'] as String?;
+            if (ev == null) return;
+            if (ev == 'state') {
+              final bool connected = map['connected'] as bool? ?? false;
+              setState(() {
+                _isPrinterConnected = connected;
+                _printerStatus = connected ? '已连接' : '未连接';
+              });
+            } else if (ev == 'attached') {
+              setState(() {
+                _printerStatus = '设备已插入';
+              });
+            } else if (ev == 'detached') {
+              setState(() {
+                _isPrinterConnected = false;
+                _printerStatus = '已拔出';
+              });
+            } else if (ev == 'data') {
+              final dynamic data = map['data'];
+              // you can handle incoming data here if needed
+              debugPrint('Printer data event: $data');
+            }
+          },
+          onError: (dynamic err) {
+            debugPrint('Printer event error: $err');
+          },
+        );
   }
 
   Future<void> initPlatformState() async {
@@ -197,9 +202,39 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> printTextZebra() async {
+    if (!_isPrinterConnected) {
+      showSnackbar('请先连接打印机');
+      return;
+    }
+
+    try {
+      // final text =
+      // _textController.text.isEmpty ? '测试打印文本' : _textController.text;
+      await testZPL();
+      final success = await FusePrinter.printTextEx(
+        data: Uint8List.fromList(bytes),
+      );
+      if (success != null && success) {
+        await FusePrinter.printFeedPaper(lines: 3);
+        showSnackbar('文本打印成功');
+      } else {
+        showSnackbar('文本打印失败');
+      }
+    } on PlatformException catch (e) {
+      showSnackbar('打印异常: ${e.message}');
+    }
+  }
+
+  Future<void> testZPL() async {
+    bytes.clear();
+    String zpl = "^XA^FO50,50^A0N,50,50^FDHello Zebra^FS^XZ";
+    bytes = Uint8List.fromList(zpl.codeUnits);
+  }
+
   Future<void> testEscPos() async {
-  final CapabilityProfile profile = await CapabilityProfile.load();
-  profile.codePages = [];
+    final CapabilityProfile profile = await CapabilityProfile.load();
+    profile.codePages = [];
     bytes.clear();
 
     // // 标题
@@ -423,6 +458,12 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: printTextEx,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text('打印文本扩展'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: printTextZebra,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('Zebra打印测试'),
             ),
 
             const SizedBox(height: 20),
