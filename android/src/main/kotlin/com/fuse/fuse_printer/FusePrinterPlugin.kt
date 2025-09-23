@@ -32,11 +32,15 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     override fun onUSBDeviceDetached() {
       val map = mapOf("event" to "detached")
       eventSink?.success(map)
+      // 设备断开时也发送设备列表更新
+      sendDeviceListUpdate()
     }
 
     override fun onUSBDeviceAttached() {
       val map = mapOf("event" to "attached")
       eventSink?.success(map)
+      // 设备连接时发送设备列表更新
+      sendDeviceListUpdate()
     }
 
     override fun onUSBPrintStateChanged(connected: Boolean) {
@@ -50,6 +54,19 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
+  // 发送设备列表更新到Flutter端
+  private fun sendDeviceListUpdate() {
+    Handler(Looper.getMainLooper()).post {
+      try {
+        val deviceListJson = mUSBCommunicationPlugin.getAllUSBDevices()
+        val map = mapOf("event" to "device_list", "devices" to deviceListJson)
+        eventSink?.success(map)
+      } catch (e: Exception) {
+        Log.e("FusePrinterPlugin", "Failed to send device list update: ${e.message}")
+      }
+    }
+  }
+
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     context = flutterPluginBinding.applicationContext
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
@@ -59,23 +76,26 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
     mUSBCommunicationPlugin.init(context, 0,0)
 
     // Event channel for connection/status updates
-    eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, EVENT_CHANNEL_NAME)
-    eventChannel.setStreamHandler(object : StreamHandler {
-      override fun onListen(arguments: Any?, events: EventSink?) {
-        eventSink = events
-        // forward current status immediately
-        try {
-          val connected = mUSBCommunicationPlugin.getPrinterStatus()
-          eventSink?.success(mapOf("event" to "state", "connected" to connected))
-        } catch (_: Exception) {
-          // ignore
+      eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, EVENT_CHANNEL_NAME)
+      eventChannel.setStreamHandler(object : StreamHandler {
+        override fun onListen(arguments: Any?, events: EventSink?) {
+          eventSink = events
+          // forward current status and device list immediately
+          try {
+            val connected = mUSBCommunicationPlugin.getPrinterStatus()
+            eventSink?.success(mapOf("event" to "state", "connected" to connected))
+            // 立即发送设备列表
+            val deviceListJson = mUSBCommunicationPlugin.getAllUSBDevices()
+            eventSink?.success(mapOf("event" to "device_list", "devices" to deviceListJson))
+          } catch (_: Exception) {
+            // ignore
+          }
         }
-      }
 
-      override fun onCancel(arguments: Any?) {
-        eventSink = null
-      }
-    })
+        override fun onCancel(arguments: Any?) {
+          eventSink = null
+        }
+      })
 
     // attach listener to the USB plugin so we can forward events
     mUSBCommunicationPlugin.setUSBStateListener(usbStateListener)
@@ -193,6 +213,15 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Get printer status error: ${e.message}")
         result.error("GET_STATUS_ERROR", "获取打印机状态失败: ${e.message}", null)
+      }
+    } else if (call.method == "getAllUSBDevices") {
+      // 获取所有USB设备列表
+      try {
+        val deviceListJson = mUSBCommunicationPlugin.getAllUSBDevices()
+        result.success(deviceListJson)
+      } catch (e: Exception) {
+        Log.e("FusePrinterPlugin", "Get all USB devices error: ${e.message}")
+        result.error("GET_DEVICES_ERROR", "获取USB设备列表失败: ${e.message}", null)
       }
     } else {
       result.notImplemented()

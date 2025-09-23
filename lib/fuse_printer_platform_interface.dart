@@ -71,4 +71,9 @@ abstract class FusePrinterPlatform extends PlatformInterface {
   Future<bool?> getPrinterStatus() {
     throw UnimplementedError('getPrinterStatus() has not been implemented.');
   }
+
+  /// 获取所有连接的USB设备列表
+  Future<String?> getAllUSBDevices() {
+    throw UnimplementedError('getAllUSBDevices() has not been implemented.');
+  }
 }

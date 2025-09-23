@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -458,5 +459,46 @@ public class USBCommunicationPlugin {
     // 获取打印机状态（简单实现，返回true表示连接）
     public boolean getPrinterStatus() {
         return usbUtil.isConnected();
+    }
+
+    /**
+     * 获取所有连接的USB设备列表
+     * @return USB设备列表的JSON字符串
+     */
+    public String getAllUSBDevices() {
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("[");
+        
+        List<UsbDevice> devices = usbUtil.getAllUsbDevices();
+        if (devices != null && !devices.isEmpty()) {
+            for (int i = 0; i < devices.size(); i++) {
+                UsbDevice device = devices.get(i);
+                jsonBuilder.append("{");
+                jsonBuilder.append("\"vendorId\":").append(device.getVendorId()).append(",");
+                jsonBuilder.append("\"productId\":").append(device.getProductId()).append(",");
+                jsonBuilder.append("\"deviceName\":\"").append(device.getDeviceName()).append("\",");
+                jsonBuilder.append("\"manufacturerName\":");
+                if (device.getManufacturerName() != null) {
+                    jsonBuilder.append("\"").append(device.getManufacturerName()).append("\"");
+                } else {
+                    jsonBuilder.append("null");
+                }
+                jsonBuilder.append(",");
+                jsonBuilder.append("\"productName\":");
+                if (device.getProductName() != null) {
+                    jsonBuilder.append("\"").append(device.getProductName()).append("\"");
+                } else {
+                    jsonBuilder.append("null");
+                }
+                jsonBuilder.append("}");
+                
+                if (i < devices.size() - 1) {
+                    jsonBuilder.append(",");
+                }
+            }
+        }
+        
+        jsonBuilder.append("]");
+        return jsonBuilder.toString();
     }
 }

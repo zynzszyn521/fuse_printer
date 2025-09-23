@@ -81,4 +81,9 @@ abstract class FusePrinter {
   static Future<bool?> getPrinterStatus() {
     return FusePrinterPlatform.instance.getPrinterStatus();
   }
+
+  /// 获取所有连接的USB设备列表
+  static Future<String?> getAllUSBDevices() {
+    return FusePrinterPlatform.instance.getAllUSBDevices();
+  }
 }

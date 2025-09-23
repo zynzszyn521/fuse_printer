@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
@@ -44,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _qrCodeController = TextEditingController();
   List<int> bytes = [];
+  List<Map<String, dynamic>> _usbDevices = [];
 
   // 常见打印机的Vendor ID和Product ID
   final Map<String, Map<String, int>> _printerDevices = {
@@ -90,6 +92,21 @@ class _MyHomePageState extends State<MyHomePage> {
               final dynamic data = map['data'];
               // you can handle incoming data here if needed
               debugPrint('Printer data event: $data');
+            } else if (ev == 'device_list') {
+              final String? devicesJson = map['devices'] as String?;
+              if (devicesJson != null) {
+                try {
+                  final List<dynamic> devicesList = jsonDecode(devicesJson);
+                  setState(() {
+                    _usbDevices = devicesList
+                        .map((device) => Map<String, dynamic>.from(device))
+                        .toList();
+                  });
+                  debugPrint('USB设备列表已更新: ${_usbDevices.length} 个设备');
+                } catch (e) {
+                  debugPrint('解析设备列表失败: $e');
+                }
+              }
             }
           },
           onError: (dynamic err) {
@@ -131,6 +148,33 @@ class _MyHomePageState extends State<MyHomePage> {
           _isPrinterConnected = false;
         });
         showSnackbar('打印机连接失败');
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _isPrinterConnected = false;
+        _printerStatus = '连接异常: ${e.message}';
+      });
+      showSnackbar('连接异常: ${e.message}');
+    }
+  }
+
+  // 根据vendorId和productId连接设备
+  Future<void> _connectWithDevice(int vendorId, int productId) async {
+    try {
+      final success = await FusePrinter.printInit(
+        vendorId: vendorId,
+        productId: productId,
+      );
+      if (success != null && success) {
+        setState(() {
+          _isPrinterConnected = true;
+        });
+        showSnackbar('设备连接成功');
+      } else {
+        setState(() {
+          _isPrinterConnected = false;
+        });
+        showSnackbar('设备连接失败');
       }
     } on PlatformException catch (e) {
       setState(() {
@@ -362,6 +406,28 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // 获取所有USB设备列表
+  Future<void> getAllUSBDevices() async {
+    try {
+      final String? devicesJson = await FusePrinter.getAllUSBDevices();
+      if (devicesJson != null) {
+        try {
+          final List<dynamic> devicesList = jsonDecode(devicesJson);
+          setState(() {
+            _usbDevices = devicesList
+                .map((device) => Map<String, dynamic>.from(device))
+                .toList();
+          });
+          showSnackbar('已获取 ${_usbDevices.length} 个USB设备');
+        } catch (e) {
+          showSnackbar('解析设备列表失败: $e');
+        }
+      }
+    } on PlatformException catch (e) {
+      showSnackbar('获取设备列表异常: ${e.message}');
+    }
+  }
+
   // 显示提示信息
   void showSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -513,6 +579,61 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               child: const Text('打印测试页面', style: TextStyle(fontSize: 18)),
             ),
+
+            const SizedBox(height: 20),
+            const Divider(height: 1, color: Colors.grey),
+            const SizedBox(height: 20),
+
+            // USB设备列表
+            const Text('USB设备管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: getAllUSBDevices,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+              child: const Text('获取USB设备列表'),
+            ),
+            const SizedBox(height: 15),
+            
+            // USB设备列表显示
+            _usbDevices.isEmpty
+                ? const Text('暂无USB设备信息，请点击上方按钮获取')
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:
+                        _usbDevices.map((device) {
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:
+                                <Widget>[Text('设备名称: ${device['deviceName'] ?? '未知'}'),
+                              Text('厂商ID: ${device['vendorId']}'),
+                              Text('产品ID: ${device['productId']}'),
+                              if (device['manufacturerName'] != null)
+                                Text('厂商: ${device['manufacturerName']}'),
+                              if (device['productName'] != null)
+                                Text('产品: ${device['productName']}'),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // 使用此设备的vendorId和productId连接
+                                  final int vendorId = device['vendorId'] as int;
+                                  final int productId = device['productId'] as int;
+                                  _connectWithDevice(vendorId, productId);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade600,
+                                ),
+                                child: const Text('连接此设备'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
           ],
         ),
       ),
