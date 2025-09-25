@@ -241,10 +241,10 @@ public class USBCommunicationPlugin {
     }
 
     // 打印文本
-    public void doPrintText(String text) {
+    public boolean doPrintText(String text) {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法打印");
-            return;
+            return false;
         }
         new Thread(() -> {
             try {
@@ -291,13 +291,14 @@ public class USBCommunicationPlugin {
                 Log.e(TAG, "打印异常", e);
             }
         }).start();
+        return true; 
     }
 
     // 打印扩展文本
-    public void doPrintTextEx(byte[] data) {
+    public boolean doPrintTextEx(byte[] data) {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法打印");
-            return;
+            return false;
         }
         new Thread(() -> {
             try {
@@ -309,6 +310,7 @@ public class USBCommunicationPlugin {
                 Log.e(TAG, "打印异常", e);
             }
         }).start();
+        return true; 
     }
 
     // 绘图方法
