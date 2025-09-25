@@ -124,8 +124,8 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
       // 打印文本
       val text = call.argument<String>("text") ?: ""
       try {
-        mUSBCommunicationPlugin.doPrintText(text)
-        result.success(true)
+        val success =  mUSBCommunicationPlugin.doPrintText(text)
+        result.success(success)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print text error: ${e.message}")
         result.error("PRINT_TEXT_ERROR", "打印文本失败: ${e.message}", null)
@@ -138,8 +138,8 @@ class FusePrinterPlugin: FlutterPlugin, MethodCallHandler {
         return
       }
       try {
-        mUSBCommunicationPlugin.doPrintTextEx(data)
-        result.success(true)
+        val success = mUSBCommunicationPlugin.doPrintTextEx(data)
+        result.success(success)
       } catch (e: Exception) {
         Log.e("FusePrinterPlugin", "Print textEx error: ${e.message}")
         result.error("PRINT_TEXTEX_ERROR", "打印扩展文本失败: ${e.message}", null)
