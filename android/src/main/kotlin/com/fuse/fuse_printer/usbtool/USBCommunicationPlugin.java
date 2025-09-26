@@ -100,7 +100,6 @@ public class USBCommunicationPlugin {
         this.mContext = context.getApplicationContext();
         this.mVendorId = vendorId;
         this.mProductId = productId;
-        // true: TSC, false: ESC
 
         // 初始化 USBUtil
         usbUtil = USBUtil.getInstance(mContext);
@@ -419,14 +418,14 @@ public class USBCommunicationPlugin {
         }
     }
 
-    // 切纸（ESC模式常见命令，TSC部分机型支持）
+    // 切纸（ESCPOS模式常见命令，TSC部分机型支持）
     public boolean doCutPaper() {
         if (!usbUtil.isConnected()) {
             Log.e(TAG, "USB未连接，无法切纸");
             return false;
         }
         try {
-            // ESC/POS常用切纸命令
+            // ESCPOS常用切纸命令
             byte[] cut = new byte[]{0x1D, 0x56, 0x00};
             usbUtil.sendData(cut);
             return true;
@@ -443,7 +442,7 @@ public class USBCommunicationPlugin {
             return false;
         }
         try {
-            // ESC/POS进纸命令
+            // ESCPOS进纸命令
             byte[] feed = new byte[]{0x1B, 0x64, (byte) lines};
             usbUtil.sendData(feed);
             return true;
